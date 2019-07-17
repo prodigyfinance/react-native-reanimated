@@ -16,9 +16,9 @@
 #import "Nodes/REAJSCallNode.h"
 #import "Nodes/REABezierNode.h"
 #import "Nodes/REAEventNode.h"
-#import "REAModule.h"
 #import "Nodes/REAAlwaysNode.h"
 #import "Nodes/REAConcatNode.h"
+#import "Nodes/REAFormatNode.h"
 #import "REAModule.h"
 
 @interface RCTUIManager ()
@@ -33,7 +33,7 @@
 
 
 // Interface below has been added in order to use private methods of RCTUIManager,
-// RCTUIManager#UpdateView is a React Method which is exported to JS but in 
+// RCTUIManager#UpdateView is a React Method which is exported to JS but in
 // Objective-C it stays private
 // RCTUIManager#setNeedsLayout is a method which updated layout only which
 // in its turn will trigger relayout if no batch has been activated
@@ -57,6 +57,7 @@
   CADisplayLink *_displayLink;
   REAUpdateContext *_updateContext;
   BOOL _wantRunUpdates;
+  BOOL _processingDirectEvent;
   NSMutableArray<REAOnAnimationCallback> *_onAnimationCallbacks;
   NSMutableArray<REANativeAnimationOp> *_operationsInBatch;
 }
@@ -111,7 +112,9 @@
 - (void)postRunUpdatesAfterAnimation
 {
   _wantRunUpdates = YES;
-  [self startUpdatingOnAnimationFrame];
+  if (!_processingDirectEvent) {
+    [self startUpdatingOnAnimationFrame];
+  }
 }
 
 - (void)startUpdatingOnAnimationFrame
@@ -228,6 +231,7 @@
             @"event": [REAEventNode class],
             @"always": [REAAlwaysNode class],
             @"concat": [REAConcatNode class],
+            @"format": [REAFormatNode class],
 //            @"listener": nil,
             };
   });
@@ -335,15 +339,47 @@
   [eventNode processEvent:event];
 }
 
+- (void)processDirectEvent:(id<RCTEvent>)event
+{
+  _processingDirectEvent = YES;
+  [self processEvent:event];
+  [self performOperations];
+  _processingDirectEvent = NO;
+}
+
+- (BOOL)isDirectEvent:(id<RCTEvent>)event
+{
+  static NSArray<NSString *> *directEventNames;
+  static dispatch_once_t directEventNamesToken;
+  dispatch_once(&directEventNamesToken, ^{
+    directEventNames = @[
+      @"onContentSizeChange",
+      @"onMomentumScrollBegin",
+      @"onMomentumScrollEnd",
+      @"onScroll",
+      @"onScrollBeginDrag",
+      @"onScrollEndDrag"
+    ];
+  });
+  
+  return [directEventNames containsObject:event.eventName];
+}
+
 - (void)dispatchEvent:(id<RCTEvent>)event
 {
   NSString *key = [NSString stringWithFormat:@"%@%@", event.viewTag, event.eventName];
   REANode *eventNode = [_eventMapping objectForKey:key];
 
   if (eventNode != nil) {
-    // enqueue node to be processed
-    [_eventQueue addObject:event];
-    [self startUpdatingOnAnimationFrame];
+    if ([self isDirectEvent:event]) {
+      // Bypass the event queue/animation frames and process scroll events
+      // immediately to avoid getting out of sync with the scroll position
+      [self processDirectEvent:event];
+    } else {
+      // enqueue node to be processed
+      [_eventQueue addObject:event];
+      [self startUpdatingOnAnimationFrame];
+    }
   }
 }
 
