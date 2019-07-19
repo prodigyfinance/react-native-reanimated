@@ -19,6 +19,7 @@
 #import "Nodes/REAAlwaysNode.h"
 #import "Nodes/REAConcatNode.h"
 #import "Nodes/REAFormatNode.h"
+#import "Nodes/REAArrayFromNode.h"
 #import "REAModule.h"
 
 @interface RCTUIManager ()
@@ -232,6 +233,7 @@
             @"always": [REAAlwaysNode class],
             @"concat": [REAConcatNode class],
             @"format": [REAFormatNode class],
+            @"arrayFrom": [REAArrayFromNode class],
 //            @"listener": nil,
             };
   });
@@ -361,7 +363,7 @@
       @"onScrollEndDrag"
     ];
   });
-  
+
   return [directEventNames containsObject:event.eventName];
 }
 
