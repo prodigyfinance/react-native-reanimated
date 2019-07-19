@@ -4,6 +4,7 @@ import com.facebook.react.bridge.JSApplicationIllegalArgumentException;
 import com.facebook.react.bridge.ReadableMap;
 import com.swmansion.reanimated.NodesManager;
 import com.swmansion.reanimated.Utils;
+import java.util.Arrays;
 
 public class OperatorNode extends Node {
 
@@ -145,6 +146,18 @@ public class OperatorNode extends Node {
   };
 
   // logical
+  private static final Operator INDEXOF = new Operator() {
+    @Override
+    public double evaluate(Array x, Double y) {
+      return (Double) Arrays.asList(x).indexOf(y);
+    }
+  };
+  private static final Operator LENGTH = new Operator() {
+    @Override
+    public double evaluate(Array x) {
+      return (Double) x.length;
+    }
+  };
   private static final Operator AND = new Operator() {
     @Override
     public double evaluate(Node[] input) {
@@ -261,6 +274,10 @@ public class OperatorNode extends Node {
       mOperator = ROUND;
     } else if ("and".equals(op)) {
       mOperator = AND;
+    } else if ("indexOf".equals(op)) {
+      mOperator = INDEXOF;
+    } else if ("length".equals(op)) {
+      mOperator = LENGTH;
     } else if ("or".equals(op)) {
       mOperator = OR;
     } else if ("not".equals(op)) {

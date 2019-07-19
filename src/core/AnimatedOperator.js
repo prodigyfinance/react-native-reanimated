@@ -46,6 +46,8 @@ const OPERATIONS = {
 
   // comparing
   lessThan: infix((a, b) => a < b),
+  indexOf: infix((a, b) => a.indexOf(b)),
+  length: infix((a) => a.length),
   /* eslint-disable-next-line eqeqeq */
   eq: infix((a, b) => a == b),
   greaterThan: infix((a, b) => a > b),
